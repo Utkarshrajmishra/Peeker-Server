@@ -1,35 +1,57 @@
-import { Client, Users } from 'node-appwrite';
+import { Client, Databases, Query } from "appwrite";
 
-// This Appwrite function will be executed every time your function is triggered
-export default async ({ req, res, log, error }) => {
-  // You can use the Appwrite SDK to interact with other services
-  // For this example, we're using the Users service
-  const client = new Client()
-    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT)
-    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
-    .setKey(req.headers['x-appwrite-key'] ?? '');
-  const users = new Users(client);
+export const client = new Client();
+
+client
+  .setEndpoint("https://cloud.appwrite.io/v1")
+  .setProject(process.env.PROJECT_ID);
+
+const databases = new Databases(client);
+
+export default async (req, res) => {
+  
+  const id = req.query.text || req.body.text;
+
+  if (!id)
+    return res.status(400).json({ error: "No image text provided" });
 
   try {
-    const response = await users.list();
-    // Log messages and errors to the Appwrite Console
-    // These logs won't be seen by your end users
-    log(`Total users: ${response.total}`);
-  } catch(err) {
-    error("Could not list users: " + err.message);
-  }
+    const result = await databases.listDocuments(
+      process.env.APPWRITE_DATABASE_ID,
+      process.env.APPWRITE_COLLECTION_ID,
+      [Query.equal("id", id),Query.select(["seen"])] 
+    );
 
-  // The req object contains the request data
-  if (req.path === "/ping") {
-    // Use res object to respond with text(), json(), or binary()
-    // Don't forget to return a response!
-    return res.text("Pong");
-  }
+      if (result.total === 0) {
+        return res
+          .status(400)
+          .json({ error: "No document found with the given id" });
+      }
 
-  return res.json({
-    motto: "Build like a team of hundreds_",
-    learn: "https://appwrite.io/docs",
-    connect: "https://appwrite.io/discord",
-    getInspired: "https://builtwith.appwrite.io",
-  });
+      const status=result.documents[0].seen;
+      if(status) return res.status(404).json({ error: "Nothing found" });
+
+
+      const documentId = result.documents[0].$id;
+
+      try {
+        const update = await databases.updateDocument(
+          process.env.APPWRITE_DATABASE_ID,
+          process.env.APPWRITE_COLLECTION_ID,
+          documentId,
+          {
+            "seen":true,
+            seenAt:new Date(),
+          }
+        );
+
+        return res.status(404).json({error:'Nothing found'})
+      } catch (error) {
+        return res.status(500).json({error:"Some error occurred while updating"})
+      }
+
+
+  } catch (error) {
+    return res.status(500).json({ error: "Some error occurred while fetching" });
+  }
 };
