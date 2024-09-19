@@ -1,17 +1,16 @@
 {
-  "name": "peeker-server",
+  "name": "starter-template",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "",
+  "main": "src/main.js",
   "type": "module",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "format": "prettier --write ."
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
   "dependencies": {
-    "@nhost/nhost-js": "^3.1.9",
-    "appwrite": "^14.0.1"
+    "node-appwrite": "^12.0.1"
+  },
+  "devDependencies": {
+    "prettier": "^3.2.5"
   }
 }
